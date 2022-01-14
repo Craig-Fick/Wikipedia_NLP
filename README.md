@@ -1,5 +1,5 @@
 # Wikipedia_NLP_Dashboard
-This is a interactive app I created with ploty dash that allows users to explore all of Wikipedia pages via API and will return details on Named Entity Recognition (NER) and TF-IDF scores for specified pages. The application is fully written in python.
+This is a interactive application I created with ploty dash that allows users to explore all of Wikipedia pages via API and will return details on Named Entity Recognition (NER) and TF-IDF scores for specified pages. The application is fully written in python.
 
 Features:
 - A section that returns 10 suggested pages to explore on your specified topic.
