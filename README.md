@@ -1,4 +1,4 @@
-# Wikipedia_NLP_Application
+# Wikipedia_NLP_Dashboard
 This is a interactive app I created with ploty dash that allows users to explore all of Wikipedia pages via API and will return details on Named Entity Recognition (NER) and TF-IDF scores for specified pages. The application is fully written in python.
 
 Features:
@@ -17,7 +17,7 @@ NER - Named Entity Recognition - is a subtask of information extraction that see
 
 TF-IDF - short for term frequency–inverse document frequency, is a numerical statistic that is intended to reflect how important a word is to a document in a collection or corpus.
 
-
+An example of the Dashboard can be viewed in th GIF below.
 
 
 ![dash app demo](python-dash-demo.gif)
