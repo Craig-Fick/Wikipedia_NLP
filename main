@@ -1,0 +1,188 @@
+import wikipedia
+from dash import Dash, Output, Input, State, html, dcc, callback, MATCH, dash_table
+import plotly.express as px
+import nltk
+nltk.download('punkt')
+nltk.download('averaged_perceptron_tagger')
+nltk.download('maxent_ne_chunker')
+nltk.download('words')
+import pandas as pd
+import plotly.graph_objects as go
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+# app layout
+if __name__ == '__main__':
+    
+    app = Dash()
+    colors = {
+        'background': 'E7F1F6',
+        'text': '#53575A'}
+  
+    app.layout = html.Div(style={'backgroundColor': colors['background']},children=[
+        html.H1("A Wikipedia Natural Language Processing Application"),
+        html.H4('Explore a Topic for Suggested Wikipedia Pages:  ',style={'display':'inline-block','margin-right':20}),
+        # suggest page titles given a topic
+        dcc.Input(
+            id='input-x',
+            placeholder='Enter Topic Here',
+            type='text',
+            value='',
+        ),
+        html.Br(),
+        html.Div(id='result'), # suggested pages return
+        html.H2("The Sections Below May Take a Moment to Load"),       
+        html.H4('Retrieve Details for a Specific Page:  ',style={'display':'inline-block','margin-right':20}),
+        dcc.Input(
+            id='input-y',
+            placeholder='Enter Title Here',
+            type='text',
+            value='',
+        ),
+        html.Button('Run', id='button1', n_clicks=0),
+        html.A(html.Button('Reset'),href='/'),
+        html.Div(id='result1'), # Page Summary return
+        html.H4('URL for the Page:  ',style={'display':'inline-block','margin-right':20}),
+        html.Div(id='result2'), # Wiki page URL
+        html.H4('Total Number of Entities Found on Page:  ',style={'display':'inline-block','margin-right':20}),
+        html.Div(id='result3'), # entity count for Wiki page
+        html.Div([
+            html.Div([
+                
+                dcc.Graph(id='barchart',style={'vertical-align': 'top','width': '50%', 'height': '40vh'}),
+                html.H5('Geo-Political Entities are composite entities comprised of a population, a government, a physical location, and a nation (or province, state, county, city, etc.).',),],
+            ),
+            html.Div([
+                dbc.Row([
+                    html.H4('Top 10 Most Frequent Entities'),
+                    html.H4('Top 10 TF-IDF Scores:'),]),
+                dbc.Row([
+                    html.Div(id='table', 
+                         className = 'table', style={'display': 'inline-block', 'vertical-align': 'top','width': '40vh', 'height': '40vh'}),],),
+                    html.Div(id='table1', 
+                         className = 'table', style={'display': 'inline-block','vertical-align': 'top','width': '40vh', 'height': '40vh'}),],),
+        ],),
+    ])
+        
+
+# Application Functions    
+    # get suggested pages     
+    @app.callback(
+        Output('result', 'children'),
+        [Input('input-x', 'value')])  
+    def update_result(x):
+        result = []
+        result = wikipedia.search(x, results = 10)
+        return "Suggested Wiki Topics: {}".format(result)
+    
+    # get summary of page    
+    @app.callback(        
+        Output('result1', 'children'),
+        [Input('button1', 'n_clicks')],
+        [State('input-y', 'value')])
+    def update_summary(n_clicks, y):
+            result1 = []
+            result1 = wikipedia.summary("/'"+ y + "/'", sentences = 5)
+            return "Summary of Page: {}".format(result1)
+    
+    # get url of page        
+    @app.callback(
+        Output('result2', 'children'),
+        [Input('button1', 'n_clicks')],
+        [State('input-y', 'value')])
+    def update_url(n_clicks, y):
+        result2 = []
+        result2 = wikipedia.page("/'"+ y + "/'").url
+        return "{}".format(result2)
+    
+     # entity count
+    @app.callback(
+        Output('result3', 'children'),
+        [Input('button1', 'n_clicks')],
+        [State('input-y', 'value')])
+    def result_count(n_clicks, y):
+        text = []
+        text = wikipedia.page(y).content # get page content
+        L = []
+        for sent in nltk.sent_tokenize(text):
+            for chunk in nltk.ne_chunk(nltk.pos_tag(nltk.word_tokenize(sent))):
+                if hasattr(chunk, 'label'):
+                     L.append([chunk.label(), ' '.join(c[0] for c in chunk)])        
+        df = pd.DataFrame(L, columns=['a','b'])      
+        result3 = len(df.index)
+        return "{}".format(result3)
+    
+    # render updated plot from page content
+    @app.callback(
+        Output('barchart', 'figure'),
+        [Input('button1', 'n_clicks')],
+        [State('input-y', 'value')])
+    def entity_plot(n_clicks, y):
+        text = []
+        text = wikipedia.page(y).content # get page content
+        L = []
+        for sent in nltk.sent_tokenize(text):
+            for chunk in nltk.ne_chunk(nltk.pos_tag(nltk.word_tokenize(sent))):
+                if hasattr(chunk, 'label'):
+                     L.append([chunk.label(), ' '.join(c[0] for c in chunk)])        
+        df = pd.DataFrame(L, columns=['a','b'])
+        df['count'] = 1
+        df['type'] = df['a']
+        df['entity'] = df['b']
+        df = df[['type','entity','count']]
+        df.loc[df.type == "GSP", 'type'] = "GPE"
+        df.loc[df.type == "LOCATION", 'type'] = "GPE"
+        df0 = df['type'].value_counts().rename_axis('type').reset_index(name='count')
+        fig = px.bar(df0, x="type", y="count", color = "type", title="Number of Entities on Wikipedia Page for " + y)
+        fig.update_layout(transition_duration=300)      
+        return fig
+    
+    # get top 10 frequent entities        
+    @app.callback(
+        Output('table', 'children'),
+        [Input('button1', 'n_clicks')],
+        [State('input-y', 'value')])
+    def table(n_clicks, y):
+        text = []
+        text = wikipedia.page(y).content # get page content
+        L = []
+        n = 10
+        for sent in nltk.sent_tokenize(text):
+            for chunk in nltk.ne_chunk(nltk.pos_tag(nltk.word_tokenize(sent))):
+                if hasattr(chunk, 'label'):
+                     L.append([chunk.label(), ' '.join(c[0] for c in chunk)])        
+        df = pd.DataFrame(L, columns=['a','b'])
+        df2 = df['b'].value_counts()[:n].index.tolist()
+        df3 = pd.DataFrame(df2, columns = ['entity'])
+        df3['rank'] = ['1','2','3','4','5','6','7','8','9','10']
+        cols = [{"name": i, "id": i} for i in df3.columns]
+        return html.Div([
+                dt.DataTable(
+            id='table',
+            columns=cols,
+            data=df3.to_dict("rows"),),],)
+    
+    # get top 10 tf-idf        
+    @app.callback(
+        Output('table1', 'children'),
+        [Input('button1', 'n_clicks')],
+        [State('input-y', 'value')])
+    def table2(n_clicks, y):    
+        n = 10
+        corpus = wikipedia.page(y).content # get page content
+        corpus = [corpus]
+        vectorizer = TfidfVectorizer()
+        X = vectorizer.fit_transform(corpus)
+        z = dict(zip(vectorizer.get_feature_names(), X.toarray()[0]))
+        sort_ord = sorted(z.items(), key=lambda x: x[1], reverse=True)
+        df4 = pd.DataFrame.from_dict(sort_ord)
+        df5 = df4.head(10)
+        df5.columns = ['word', "score"]
+        cols2 = [{"name": i, "id": i} for i in df5.columns]
+        return html.Div([
+                dt.DataTable(
+            id='table1',
+            columns=cols2,
+            data=df5.to_dict("rows"),),],)
+        
+    
+    app.run_server()
