@@ -1,6 +1,10 @@
 # Wikipedia_NLP_Dashboard
 This is a interactive application I created with ploty dash that allows users to explore all of Wikipedia pages via API and will return details on Named Entity Recognition (NER) and TF-IDF scores for specified pages. The application is fully written in python.
 
+An example of the Dashboard can be viewed in th GIF below.
+
+![dash app demo](python-dash-demo.gif)
+
 Features:
 - A section that returns 10 suggested pages to explore on your specified topic.
 - A section for more insight into a specific page, insights include:
@@ -19,5 +23,3 @@ TF-IDF - short for term frequency–inverse document frequency, is a numerical s
 
 An example of the Dashboard can be viewed in th GIF below.
 
-
-![dash app demo](python-dash-demo.gif)
